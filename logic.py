@@ -1,12 +1,20 @@
 import copy
-from block import Block
+import numpy as np
+from block import Blocks
 
+class UiData(object):
+    def __init__(self,height, width):
+        self.blocks = np.zeros((height, width), dtype=np.uint8)
+        self.falling_blocks = np.zeros((4, 4), dtype=np.uint8)
+        self.next_blocks = np.zeros((4, 4), dtype=np.uint8)
+        self.score = 0
+        self.speed = 10
+    
 class GameBase(object):
     def __init__(self):
         self.height = 20
         self.width = 10
-        self.show_blocks = []
-        self.solid_blocks = [[0] * self.width] * self.height
+        self.ui_data = UiData(self.height,self.width)
         '''
         -1: 未初始化
         0: 和平
@@ -19,9 +27,7 @@ class GameBase(object):
         10次才更新一次，如果falling为true的话，速度加倍
         '''
         self.timestamp = 0
-        self.speed = 10
-        self.score = 0
-        self.shape = None
+        self.falling_blocks = None
         '''
         0：不向任何方向移动
         1：向右移动
@@ -35,8 +41,8 @@ class GameBase(object):
         self.block_reason = 0
 
     def gen_new_shape(self):
-        self.shape = Block(width = self.width)
-        self.shape.gen_new_block()
+        self.falling_blocks = Blocks(width = self.width)
+        self.falling_blocks.gen_new_block()
 
     def _vanish_line(self):
         '''
@@ -44,36 +50,46 @@ class GameBase(object):
         '''
         if self.status == 0:
             vanish_lines = []
-            for i,row in enumerate(self.solid_blocks):
-                erase_this_line = True
-                for item in row:
-                    if item == 0:
-                        erase_this_line = False
-                        break
-                if erase_this_line == True:
+            for i,row in enumerate(self.ui_data.blocks):
+                if row.all() == 1:
                     vanish_lines.append(i)
+
             for vanish_item in vanish_lines:
-                self.solid_blocks.pop(vanish_item)
-                self.solid_blocks.insert(0,[0]*self.width)
+                self.ui_data.blocks = np.delete(self.ui_data.blocks, vanish_item, 0)
+                self.ui_data.blocks = np.insert(self.ui_data.blocks, 0, [0]*self.width, axis=0)
+
+    def test_vanish_line(self):
+        self.status = 0
+        self.ui_data.blocks = np.ones((self.height, self.width), dtype=np.uint8)
+        self.ui_data.blocks[1,2] = 0
+        print(self.ui_data.blocks)
+        self._vanish_line()
+        print(self.ui_data.blocks)
+
+    def _test_block(self, px, py):
+        return self.ui_data.blocks[py,px] == 1 
+
+    def _test_shape(self,shape, px, py):
+        return shape[py,px] == 1 
+
+    def _test_one_conflict(self,shape, px, py):
+        for j in shape.shape[0]:
+            for i in shape.shape[1]:
+                if shape[i + shape.x, j + shape.y] == 1 and self._test_block(px,py):
+                    return 
 
     def test_conflict(self, shape = None):
         if shape == None:
-            shape = self.shape
-        for item_x, item_y in shape.sparse:
-            if shape.x + item_x < 0:
-                pass
-            if self.solid_blocks[shape.x + item_x][shape.y + item_y] == 1:
-                return True
+            shape = self.falling_blocks
+        for j in shape.shape[0]:
+            for i in shape.shape[1]:
+                if self._test_shape(shape, i, j) and self._test_block(i + shape.x, j + shape.y):
+                    pass
         return False
 
     def falling(self):
         if self.test_conflict() == False:
             self.shape.fall()
-
-    def combine(self):
-        self.show_blocks = copy.deepcopy(self.solid_blocks)
-        for item_x, item_y in self.shape.sparse:
-            self.show_blocks[self.shape.x+item_x][self.shape.y+item_y] = 1
 
     def move(self):
         self.shape.move(self.move_flag)
@@ -81,9 +97,13 @@ class GameBase(object):
             self.shape.undo_move(self.move_flag)
 
     def tick(self):
-        if (self.timestamp % int(self.speed) * 100) == 0:
+        if (self.timestamp % int(self.ui_data.speed) * 100) == 0:
             self.falling()
             self.timestamp += 1
 
         self.combine()
         return self.show_blocks
+
+if __name__ == "__main__":
+    game = GameBase()
+    game.test_vanish_line()
