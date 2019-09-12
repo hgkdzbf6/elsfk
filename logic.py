@@ -28,6 +28,7 @@ class GameBase(object):
         '''
         self.timestamp = 0
         self.falling_blocks = None
+        self.next_blocks = None
         '''
         0：不向任何方向移动
         1：向右移动
@@ -40,9 +41,19 @@ class GameBase(object):
         '''
         self.block_reason = 0
 
-    def gen_new_shape(self):
-        self.falling_blocks = Blocks(width = self.width)
-        self.falling_blocks.gen_new_block()
+    def gen_falling_blocks(self):
+        if self.falling_blocks == None:
+            if self.next_blocks == None:
+                self.gen_next_shape()
+            self.falling_blocks = self.next_blocks
+            self.falling_blocks.gen_new_block()
+            self.ui_data.falling_blocks = self.falling_blocks.blocks
+            self.gen_next_shape()
+
+    def gen_next_shape(self):
+        self.next_blocks = Blocks(width = self.width)
+        self.next_blocks.gen_new_block()
+        self.ui_data.next_blocks = self.next_blocks.blocks
 
     def _vanish_line(self):
         '''
@@ -70,7 +81,7 @@ class GameBase(object):
         return self.ui_data.blocks[py,px] == 1 
 
     def _test_shape(self,shape, px, py):
-        return shape[py,px] == 1 
+        return shape.blocks[py,px] == 1 
 
     def _test_one_conflict(self,shape, px, py):
         for j in shape.shape[0]:
@@ -81,11 +92,27 @@ class GameBase(object):
     def test_conflict(self, shape = None):
         if shape == None:
             shape = self.falling_blocks
-        for j in shape.shape[0]:
-            for i in shape.shape[1]:
+        for j in range(shape.blocks.shape[0]):
+            for i in range(shape.blocks.shape[1]):
                 if self._test_shape(shape, i, j) and self._test_block(i + shape.x, j + shape.y):
-                    pass
+                    return True
         return False
+
+    def test_test_conflict(self):
+        self.status = 0
+        self.ui_data.blocks = np.ones((self.height, self.width), dtype=np.uint8)
+        self.ui_data.blocks[11,2] = 0
+        self.ui_data.blocks[16,4] = 0
+        self.ui_data.blocks[7,3] = 0
+        self.ui_data.blocks[7,4] = 0
+        self.ui_data.blocks[7,0] = 0
+        self.ui_data.blocks[7,6] = 0
+        self._vanish_line()
+        print(self.ui_data.blocks)
+        self.gen_falling_blocks()
+        self.falling_blocks.x = 3
+        self.falling_blocks.y = 15
+        print(self.test_conflict())
 
     def falling(self):
         if self.test_conflict() == False:
@@ -106,4 +133,4 @@ class GameBase(object):
 
 if __name__ == "__main__":
     game = GameBase()
-    game.test_vanish_line()
+    game.test_test_conflict()
