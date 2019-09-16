@@ -32,12 +32,27 @@ class OpenCVDraw(object):
             start_x * self.ratio : start_x * self.ratio + width * self.ratio, :] = val
         
     def _draw_one_block(self, px, py, color = (255,0,0)):
-        cv2.rectangle(self.img,(px*self.ratio,py*self.ratio), ((px+1)*self.ratio,(py+1)*self.ratio),color,-1)
-        cv2.rectangle(self.img,(px*self.ratio,py*self.ratio), ((px+1)*self.ratio,(py+1)*self.ratio),(0,0,0),1)
+        cv2.rectangle(
+            self.img,
+            (px*self.ratio,py*self.ratio), 
+            ((px+1)*self.ratio,(py+1)*self.ratio),
+            color,-1)
+        cv2.rectangle(
+            self.img,
+            (px*self.ratio,py*self.ratio), 
+            ((px+1)*self.ratio,
+            (py+1)*self.ratio),
+            (0,0,0),1)
 
     def _draw_one_block_at(self, img, px, py, color=(255,0,0)):
-        cv2.rectangle(img,(px*self.ratio,py*self.ratio), ((px+1)*self.ratio,(py+1)*self.ratio),color,-1)
-        cv2.rectangle(img,(px*self.ratio,py*self.ratio), ((px+1)*self.ratio,(py+1)*self.ratio),(0,0,0),int(self.ratio*0.15))
+        cv2.rectangle(img,
+            (px*self.ratio,py*self.ratio), 
+            ((px+1)*self.ratio,(py+1)*self.ratio),
+            color,-1)
+        cv2.rectangle(img,
+            (px*self.ratio,py*self.ratio), 
+            ((px+1)*self.ratio,(py+1)*self.ratio),
+            (0,0,0),int(self.ratio*0.15))
 
     def _draw_falling_blocks(self, img):
         pass
@@ -58,7 +73,10 @@ class OpenCVDraw(object):
             for i in range(falling_blocks.shape[1]):
                 if falling_blocks[j,i] == 1:
                     self._draw_one_block_at(img,i + px,j + py,(0,0,255))
-        
+    
+    def _draw_text(self, img, text):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        cv2.putText(img, text, (0, int(1 * self.ratio)), font, float(0.02 * self.ratio),  (255,255,0), int(0.1 * self.ratio))
 
     def draw_blocks(self):
         blocks_img = self.__create_one(self.cols, self.rows, 128)
@@ -66,20 +84,56 @@ class OpenCVDraw(object):
         score_img = self.__create_one(self.right_width,self.text_height, 88)
         speed_img = self.__create_one(self.right_width,self.text_height, 200)
 
-        self._draw_all_blocks(self.game.ui_data.blocks,self.game.ui_data.falling_blocks,self.game.falling_blocks.x,self.game.falling_blocks.y, blocks_img)
-        self._draw_blocks(self.game.ui_data.next_blocks,next_block_img)
+        self._draw_all_blocks(
+            self.game.ui_data.blocks,
+            self.game.ui_data.falling_blocks,
+            self.game.falling_blocks.x,
+            self.game.falling_blocks.y, 
+            blocks_img)
+        self._draw_blocks(
+            self.game.ui_data.next_blocks,
+            next_block_img)
+        self._draw_text(
+            score_img,
+            'score:'+str(self.game.ui_data.score)
+        )
+        self._draw_text(
+            speed_img,
+            'speed:'+str(round(400 / self.game.ui_data.speed,2))
+        )
 
         # 图像的横纵是相反的
-        self.__set(self.padding,self.padding, self.cols, self.rows,  blocks_img)
-        self.__set(self.padding*2+self.cols,self.padding, self.right_width, self.right_width,  next_block_img)
-        self.__set(self.padding*2+self.cols,self.padding*2 + self.right_width, self.right_width, self.text_height,  score_img)
-        self.__set(self.padding*2+self.cols,self.padding*3 + self.right_width +self.text_height, self.right_width, self.text_height,  speed_img)
+        self.__set(
+            self.padding,
+            self.padding, 
+            self.cols, 
+            self.rows,  
+            blocks_img)
+        self.__set(
+            self.padding*2+self.cols,
+            self.padding, 
+            self.right_width, 
+            self.right_width,  
+            next_block_img)
+        self.__set(
+            self.padding*2+self.cols,
+            self.padding*2 + self.right_width, 
+            self.right_width, 
+            self.text_height,  
+            score_img)
+        self.__set(
+            self.padding*2+self.cols,
+            self.padding*3 + self.right_width +self.text_height, 
+            self.right_width, 
+            self.text_height,  
+            speed_img)
 
     def test_draw_blocks(self):
         self.draw_blocks()
         cv2.namedWindow('img', cv2.WINDOW_NORMAL)
         cv2.imshow('img',self.img)
-        cv2.waitKey()
+        res = cv2.waitKey(1)
+        return res
 
     def draw(self, blocks):
         for j,row in enumerate(blocks):
@@ -89,18 +143,30 @@ class OpenCVDraw(object):
 
         cv2.namedWindow('img', cv2.WINDOW_NORMAL)
         cv2.imshow('img',self.img)
-        cv2.waitKey()
+        return cv2.waitKeyEx()
 
     def update(self):
         while True:
             msg = self.game.tick()
             time.sleep(0.1)
-            self.draw(msg)
+            res = self.draw(msg)
             print(msg)
-            
-if __name__ == "__main__":
+    
+    def test_key(self, key):
+        return self.game.test_key(key)
+
+def main():
     game = GameBase()
-    game.test_test_conflict()
     ui = OpenCVDraw(game)
-    ui.test_draw_blocks()
-    # ui.update()
+    game.init()
+    game.gen_falling_blocks()
+    while True:
+        res = ui.test_draw_blocks()
+        key = game.test_key(res)
+        game.tick()
+        print('tick')
+        if key == 0:
+            break
+
+if __name__ == "__main__":
+    main()

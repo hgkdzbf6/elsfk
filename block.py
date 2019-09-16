@@ -13,30 +13,49 @@ class Blocks(object):
         self.block_type = 0
         self.blocks = np.zeros((4,4),dtype=np.uint8)
         self.direction = 0
+        self.pre = (0,0,0)
         self.sparse = []
 
     def change(self):
+        self.init()
         self.direction += 1
         self.gen_block(self.block_type, self.direction)
-    
+
     def gen_new_block(self):
-        self.gen_block(random.randint(0,6),random.randint(0,3))
+        self.block_type = random.randint(0,6)
+        self.direction = random.randint(0,3)
+        self.gen_block(self.block_type,self.direction)
+
+    def _move_to(self, px, py):
+        self.x = px
+        self.y = py
+        self.init()
+
+    def init(self):
+        self.pre = (self.x, self.y, self.direction, self.block_type)
 
     def fall(self):
+        self.init()
         self.y += 1
     
-    def move(self, move_direction):
-        self.x += move_direction
+    def move_left(self):
+        self.init()
+        self.x -= 1
 
-    def undo_move(self, move_direction):
-        self.x -= move_direction
+    def move_right(self):
+        self.init()
+        self.x += 1
+
+    def undo(self):
+        (self.x, self.y, self.direction, self.block_type) = self.pre 
+        self.gen_block(self.block_type, self.direction)
+        (self.x, self.y, self.direction, self.block_type) = self.pre 
     
     def get_sparse(self):
         for j, row in enumerate(self.blocks):
             for i, item in enumerate(row):
                 if item == 1:
                     self.sparse.append((i,j))
-        
 
     def gen_block(self, block_type= None, direction=None):
         if block_type == None:
@@ -47,7 +66,8 @@ class Blocks(object):
         正方形小块
         '''
         if block_type == 0:
-            self.blocks = np.array([[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]])
+            if direction % 1 == 0:
+                self.blocks = np.array([[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]])
 
         elif block_type == 1:
             '''
@@ -108,10 +128,9 @@ class Blocks(object):
             elif direction % 4 == 1:
                 self.blocks = np.array([[0,1,0,0],[0,1,0,0],[1,1,0,0],[0,0,0,0]])
             elif direction % 4 == 2:
-                self.blocks = np.array([[0,0,0,0],[1,1,1,0],[0,0,1,0],[0,0,0,0]])
+                self.blocks = np.array([[1,0,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]])
             elif direction % 4 == 3:
                 self.blocks = np.array([[0,1,1,0],[0,1,0,0],[0,1,0,0],[0,0,0,0]])
-        self.get_sparse()
         return self.blocks
 
 if __name__ == "__main__":
