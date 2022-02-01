@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-from block import Block
+from block import Blocks
 
 class SimpleDraw(object):
     def __init__(self, one_block):
@@ -15,13 +15,16 @@ class SimpleDraw(object):
         self.ax.figure.canvas.draw()
 
     def draw(self):
+        plt.axis('equal')
+        plt.grid()
         plt.show()
 
     def _draw_one_point(self, px, py):
-        self.ax.add_patch(Rectangle((px,py), 1,1))
+        rect = Rectangle((px, py), 1, 1)
+        self.ax.add_patch(rect)
 
 if __name__ == "__main__":
-    block = Block()
+    block = Blocks()
     one_block = block.gen_block(4,3)
     ui = SimpleDraw(one_block)
     print(one_block)
